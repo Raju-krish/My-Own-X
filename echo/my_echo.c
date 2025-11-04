@@ -14,6 +14,7 @@ void reset_globals()
     interpret_escape_seq = UNSET;
     end_of_options = UNSET;
 }
+
 void handle_options(char *argv) 
 {
     char *s = argv;
@@ -41,15 +42,40 @@ void handle_options(char *argv)
     }
 }
 
+void escape_n_print(char *argv)
+{
+    char *s = argv;
+    while (*s != '\0') {
+        if(*s == '\\') {
+            s++;
+            if(*s == 't')  *s = '\t';
+            else if(*s == 'n')  *s = '\n';
+            else if(*s == 'b')  *s = '\b';
+            else if(*s == 'r')  *s = '\r';
+            else if(*s == 'f')  *s = '\f';
+            else if(*s == 'v')  *s = '\v';
+            else if(*s == '\\')  *s = '\\';
+            else s--;
+        }
+        putchar(*s);
+        s++;
+    }
+}
+
 int main (int argc, char *argv[])
 {
     for(int i = 1; i < argc; i++) {
         if(end_of_options != 2 && argv[i][0] == '-'){ 
             handle_options(argv[i]);
-            if(option_is_string == 0)
+            if(option_is_string == UNSET)
                 continue;
         }
-        printf("%s", argv[i]);
+        if(interpret_escape_seq == SET) {
+            escape_n_print(argv[i]);
+        }
+        else {
+            printf("%s", argv[i]);
+        }
         if(i != argc-1) printf(" ");
     }
     
