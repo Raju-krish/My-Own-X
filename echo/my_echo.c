@@ -7,6 +7,7 @@ uint8_t disable_new_line        = 0;
 uint8_t interpret_escape_seq    = 0;
 uint8_t end_of_options          = 0;
 uint8_t option_is_string        = 0;
+uint8_t string_starts           = 0;
 
 void reset_globals()
 {
@@ -65,11 +66,12 @@ void escape_n_print(char *argv)
 int main (int argc, char *argv[])
 {
     for(int i = 1; i < argc; i++) {
-        if(end_of_options != 2 && argv[i][0] == '-'){ 
+        if(end_of_options != 2 && string_starts == UNSET && argv[i][0] == '-'){ 
             handle_options(argv[i]);
             if(option_is_string == UNSET)
                 continue;
         }
+        string_starts = SET;
         if(interpret_escape_seq == SET) {
             escape_n_print(argv[i]);
         }
