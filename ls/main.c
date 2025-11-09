@@ -1,9 +1,11 @@
 #include <stdint.h>
 #include <stdio.h>
 #include <dirent.h>
+#include <sys/stat.h>
 #include <string.h>
 #include <errno.h>
-
+#include <stdlib.h>
+#include "my_list.h"
 
 // Print colors & formats
 #define RED     "\033[31m"
@@ -22,6 +24,13 @@
 // gloabal variables
 uint8_t g_list_hidden = NO;
 
+
+struct entry_info {
+    struct dirent meta;
+    struct stat detail_info;
+};
+
+
 uint8_t is_entry_hidden(const char *name)
 {
     if(name != NULL && name[0] == '.')
@@ -29,13 +38,34 @@ uint8_t is_entry_hidden(const char *name)
     return NO;
 }
 
-void list_dir(DIR *dirp) 
+void print_list(void *data)
+{
+    struct entry_info *info = (struct entry_info *)data;
+    printf("This is from callback func: file is %s\n", info->meta.d_name);
+}
+
+void list_dir(DIR *dirp, char *parent) 
 {
     struct dirent* entry = NULL;
+    struct stat info;
+    char path[512] = {0};
+
     while((entry = readdir(dirp)) != NULL)
     {
         if(is_entry_hidden(entry->d_name) == YES && g_list_hidden == NO)
             continue;
+        
+        struct entry_info *p_info = malloc(sizeof(struct entry_info));
+    
+        snprintf(path, sizeof(path), "%s/%s", parent, entry->d_name);
+        stat(path, &info);
+
+        memcpy(&(p_info->meta), entry, sizeof(struct dirent));
+        memcpy(&(p_info->detail_info), &info, sizeof(struct stat));
+        
+        insert_list((void*)p_info);
+
+        printf("%*ld%*ld%*o", -8,info.st_size, 0,info.st_ino, 2,info.st_mode & 0777);
 
         switch(entry->d_type) {
             case DT_DIR:
@@ -73,7 +103,7 @@ int main(int argc, char *argv[])
                 i++;
                 continue;
             }
-            list_dir(dirp);
+            list_dir(dirp, argv[i]);
             printf("\n");
             i++;
         }
@@ -84,6 +114,8 @@ int main(int argc, char *argv[])
         if(dirp == NULL) {
             printf("my_ls: cannot access cur dir %s\n", strerror(errno));
         }
-        list_dir(dirp);
+        list_dir(dirp, ".");
     }
+    for_each_entry(print_list);
+    clear_list();
 }
